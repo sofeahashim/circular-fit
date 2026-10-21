@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 
 from . import core
-from .core import CFG, DEFAULT_CFG, build_houses, route_credit, seed_data
+from .core import CFG, DEFAULT_CFG, build_houses, match, route_credit, seed_data
 
 PARTNER_NAMES = ["Salvage partner", "Recycler"]
 
@@ -21,7 +21,12 @@ def init() -> None:
         ledger.loc[ledger.route != "Reuse", "receiver_pts"] = 0
         S.update(houses=houses, listings=listings, requests=requests, ledger=ledger,
                  next_listing=len(listings) + 1, next_request=len(requests) + 1, day=21,
-                 cfg=dict(DEFAULT_CFG), role="Resident", me_name="Nadia", me_house="Lot 12")
+                 cfg=dict(DEFAULT_CFG), role="Resident", me_name="Nadia", me_house="Lot 12", agree={}, blocked=set())
+        # demo: one proposed hand-off already agreed by both sides, one agreed by the donor only
+        for i, (_, m) in enumerate(match(listings, requests, houses, 400).iterrows()):
+            if i > 1:
+                break
+            S.agree[f"{m.listing}|{m.request}"] = {"donor": "agreed", "requester": "agreed" if i == 0 else "pending"}
     CFG.update(S.cfg)
 
 
@@ -45,3 +50,13 @@ def log_diversion(listing, route: str, receiver: str, distance: float = 0) -> No
 def points_for(name: str) -> int:
     led = st.session_state.ledger
     return int(led.loc[led.donor == name, "donor_pts"].sum() + led.loc[led.receiver == name, "receiver_pts"].sum())
+
+
+def agreement(listing_id: str, request_id: str) -> dict:
+    """Both residents' answers for one proposed hand-off: pending, agreed or declined."""
+    return st.session_state.agree.setdefault(f"{listing_id}|{request_id}", {"donor": "pending", "requester": "pending"})
+
+
+def both_agreed(listing_id: str, request_id: str) -> bool:
+    a = agreement(listing_id, request_id)
+    return a["donor"] == "agreed" and a["requester"] == "agreed"

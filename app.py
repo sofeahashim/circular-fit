@@ -15,6 +15,7 @@ P = {
     "home": st.Page(views.home_resident, title="Home", icon=":material/home:", url_path="home", default=True),
     "log": st.Page(views.log_items, title="Log items", icon=":material/add_circle:", url_path="log"),
     "find": st.Page(views.find_items, title="Find materials", icon=":material/search:", url_path="find"),
+    "handoffs": st.Page(views.handoffs, title="Hand-offs", icon=":material/handshake:", url_path="handoffs"),
     "impact": st.Page(views.my_impact, title="My impact", icon=":material/workspace_premium:", url_path="impact"),
     "overview": st.Page(views.overview, title="Overview", icon=":material/dashboard:", url_path="overview"),
     "routing": st.Page(views.routing, title="Routing", icon=":material/alt_route:", url_path="routing"),
@@ -29,7 +30,7 @@ if not S.get("role_ready"):
     S.role_ready = True
 if S.get("role") not in ("Resident", "Township admin"):
     S.role = "Resident"
-pages = ([P["home"], P["log"], P["find"], P["impact"], P["method"]] if S.role == "Resident"
+pages = ([P["home"], P["log"], P["find"], P["handoffs"], P["impact"], P["method"]] if S.role == "Resident"
          else [P["overview"], P["routing"], P["planner"], P["settings"], P["method"]])
 nav = st.navigation(pages, position="top")
 
@@ -41,7 +42,8 @@ st.query_params["role"] = "admin" if S.role == "Township admin" else "resident"
 with who:
     if S.role == "Resident":
         with st.popover(f"👤 {S.me_name} · {S.me_house}", width="stretch"):
-            S.me_name = st.text_input("Your name", S.me_name)
+            names = sorted(set(S.listings.owner) | set(S.requests.owner) | {"Nadia", S.me_name})
+            st.selectbox("Your name (demo)", names, key="me_name")
             S.me_house = st.selectbox("Your home", list(S.houses.house), index=list(S.houses.house).index(S.me_house))
             st.caption("Demo only: no login. Everyone and all listings are made up.")
     else:

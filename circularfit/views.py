@@ -8,8 +8,8 @@ import streamlit as st
 
 from . import charts, ui
 from .core import (CATALOGUE, CFG, CONDITIONS, DEFAULT_CFG, GUARDHOUSE, REWARD_TIERS, ROUTE_ORDER, distance_m, estimate,
-                   forecast, match, recommend_route)
-from .state import PARTNER_NAMES, log_diversion, points_for, staging_used
+                   forecast, match, recommend_route, route_credit)
+from .state import PARTNER_NAMES, agreement, both_agreed, log_diversion, points_for, staging_used
 from .ui import BLUE, GREEN, LILAC, LIME, ORANGE, PINK, ROUTE_COLOR
 
 S = st.session_state
@@ -144,6 +144,71 @@ def find_items() -> None:
             _request_dialog(row)
 
 
+# --------------------------------------------------------------- resident hand-offs
+def _agree(listing_id: str, request_id: str, role: str) -> None:
+    agreement(listing_id, request_id)[role] = "agreed"
+    st.toast("You agreed. The other side has been notified.", icon="✅")
+
+
+def _act_as(name: str) -> None:
+    S.me_name = name
+
+
+@st.dialog("Decline this hand-off?")
+def _decline_dialog(m, role: str) -> None:
+    st.markdown("The item goes back to routing and the other resident is told. You can still be matched with someone else.")
+    st.selectbox("Reason", ["Changed my mind", "Item no longer available", "Too far to collect", "Other"])
+    a, b = st.columns(2)
+    if a.button("Keep it", width="stretch"):
+        st.rerun()
+    if b.button("Yes, decline", type="primary", width="stretch"):
+        S.blocked.add((m.listing, m.request))
+        S.agree.pop(f"{m.listing}|{m.request}", None)
+        st.toast("Declined. The item goes back to routing.", icon="↩️")
+        st.rerun()
+
+
+def handoffs() -> None:
+    ui.page_head("Resident", "My hand-offs",
+                 "When we match an item with a neighbour, you both say yes or no here. The township admin confirms once you both agree.")
+    M = match(S.listings, S.requests, S.houses, 400, blocked=S.blocked)
+    mine = [m for _, m in M.iterrows() if S.me_name in (m.donor, m.receiver)] if not M.empty else []
+    if not mine:
+        st.info(f"No proposed hand-offs for {S.me_name} right now. Log an item or request one and check back.")
+        people = sorted({p for _, m in M.iterrows() for p in (m.donor, m.receiver)}) if not M.empty else []
+        if people:
+            _card_title("Demo: act as someone who has a proposed hand-off")
+            cols = st.columns(min(len(people), 4))
+            for i, p in enumerate(people):
+                cols[i % len(cols)].button(f"Act as {p}", key=f"act_{p}", on_click=_act_as, args=(p,), width="stretch")
+        return
+    tone = {"agreed": ("agreed", GREEN), "pending": ("pending", ORANGE)}
+    for m in mine:
+        role = "donor" if m.donor == S.me_name else "requester"
+        other_role = "requester" if role == "donor" else "donor"
+        other = m.receiver if role == "donor" else m.donor
+        other_house = m.receiver_house if role == "donor" else m.donor_house
+        ag = agreement(m.listing, m.request)
+        lst = S.listings[S.listings.id == m.listing].iloc[0]
+        chips = (ui.chip(f"You ({role}): {tone[ag[role]][0]}", tone[ag[role]][1]) + " "
+                 + ui.chip(f"{other} ({other_role}): {tone[ag[other_role]][0]}", tone[ag[other_role]][1]) + " "
+                 + ui.chip(f"{m.distance_m} m apart", BLUE))
+        st.html(ui.item_card(ICON[m.material], f"{LABEL[m.material]} × {lst.quantity}",
+                             f"You are the {role}. The {other_role} is {other} ({other_house}).",
+                             f"{m.weight_kg:.0f} kg", f"{m.carbon_kg:.0f} kg CO₂e", chips))
+        if ag[role] == "pending":
+            st.caption(f"Pickup: porch-to-porch, or at the {GUARDHOUSE.lower()}. Do you agree to this hand-off?")
+            a, b, _ = st.columns([1.3, 1.3, 4])
+            a.button("Agree", key=f"ag_{m.listing}", type="primary", on_click=_agree, args=(m.listing, m.request, role), width="stretch")
+            if b.button("Decline", key=f"dc_{m.listing}", width="stretch"):
+                _decline_dialog(m, role)
+        elif both_agreed(m.listing, m.request):
+            st.success("Both of you agreed. Meet at the porch or the staging zone. The township admin will confirm once it is done.")
+        else:
+            st.info(f"You agreed. Waiting for {other} to answer.")
+        st.html('<div style="height:10px"></div>')
+
+
 def my_impact() -> None:
     ui.page_head("Resident", "My impact", f"Everything {S.me_name} has logged, requested and earned.")
     pts = points_for(S.me_name)
@@ -223,11 +288,35 @@ def overview() -> None:
             ui.note("Synthetic data. Replace with real hand-off records in a live pilot.")
 
 
+@st.dialog("Confirm this hand-off?")
+def _confirm_handoff(row, m) -> None:
+    carbon = round(float(row.carbon_kg) * route_credit("Reuse"), 1)
+    pts = int(round(carbon * CFG["points_per_kg"]))
+    st.html(f'''<div style="display:grid;gap:10px;margin-bottom:.4rem">
+      <div class="cf-item" style="grid-template-columns:54px 1fr;margin:0"><div class="ic">{ICON[row.material]}</div>
+        <div><b>{ui.esc(LABEL[row.material])} × {row.quantity}</b><span class="m">{row.weight_kg:.0f} kg · {ui.esc(row.condition)}</span></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="cf-card"><div class="cf-eyebrow">Donor</div><h3 style="margin-top:6px">{ui.esc(row.owner)}</h3><p>{ui.esc(row.house)}</p></div>
+        <div class="cf-card"><div class="cf-eyebrow" style="color:var(--blue)">Requester</div><h3 style="margin-top:6px">{ui.esc(m.receiver)}</h3><p>{ui.esc(m.receiver_house)} · {m.distance_m} m away</p></div>
+      </div></div>''')
+    st.markdown(f"Recording this adds **{row.weight_kg:.0f} kg** diverted and **{carbon:.1f} kg CO₂e** avoided to the ledger, "
+                f"and awards **{pts} points** to the donor and **{pts // 2}** to the requester. It cannot be undone in this prototype.")
+    done = st.checkbox("The item has been handed over to the requester")
+    a, b = st.columns(2)
+    if a.button("Cancel", width="stretch"):
+        st.rerun()
+    if b.button("Yes, confirm hand-off", type="primary", disabled=not done, width="stretch"):
+        S.requests.loc[S.requests.id == m.request, "status"] = "done"
+        log_diversion(row, "Reuse", m.receiver, m.distance_m)
+        st.toast("Hand-off recorded.", icon="🤝")
+        st.rerun()
+
+
 def routing() -> None:
     ui.page_head("Township admin", "Waste routing",
                  "Every logged item takes the best route available: reuse, then salvage, then recycle. Landfill is the last resort.")
     radius = st.slider("Reuse radius (metres)", 100, 600, 400, step=50)
-    M = match(S.listings, S.requests, S.houses, radius)
+    M = match(S.listings, S.requests, S.houses, radius, blocked=S.blocked)
     matched = {m.listing: m for _, m in M.iterrows()} if not M.empty else {}
     open_l = S.listings[S.listings.status == "open"].copy()
     free = CFG["staging_capacity_kg"] - staging_used()
@@ -257,16 +346,22 @@ def routing() -> None:
             st.info("No open requests fit the open listings in this radius.")
         for _, row in sub.iterrows():
             m = matched[row.id]
-            c1, c2 = st.columns([6, 1.6], vertical_alignment="center")
-            c1.html(card(row, f" → {m.receiver} ({m.receiver_house})",
-                         ui.chip(f"Match {m.score}/100", GREEN) + " " + ui.chip(f"{m.distance_m} m apart", BLUE)))
-            if c2.button("Confirm hand-off", key=f"ho_{row.id}", type="primary", width="stretch"):
-                S.requests.loc[S.requests.id == m.request, "status"] = "done"
-                log_diversion(row, "Reuse", m.receiver, m.distance_m)
-                st.toast("Hand-off recorded.", icon="🤝")
-                st.rerun()
+            ag = agreement(row.id, m.request)
+            ready = both_agreed(row.id, m.request)
+            tone = {"agreed": ("agreed", GREEN), "pending": ("pending", ORANGE)}
+            chips = (ui.chip(f"Match {m.score}/100", LILAC) + " " + ui.chip(f"{m.distance_m} m apart", BLUE) + " "
+                     + ui.chip(f"Donor {tone[ag['donor']][0]}", tone[ag["donor"]][1]) + " "
+                     + ui.chip(f"Requester {tone[ag['requester']][0]}", tone[ag["requester"]][1]))
+            c1, c2 = st.columns([6, 1.8], vertical_alignment="center")
+            c1.html(ui.item_card(ICON[row.material], f"{LABEL[row.material]} × {row.quantity}",
+                                 f"Donor: {row.owner} ({row.house}) → Requester: {m.receiver} ({m.receiver_house})",
+                                 f"{row.weight_kg:.0f} kg", f"{row.carbon_kg:.0f} kg CO₂e", chips))
+            if c2.button("Confirm hand-off" if ready else "Waiting for residents", key=f"ho_{row.id}",
+                         type="primary" if ready else "secondary", disabled=not ready, width="stretch"):
+                _confirm_handoff(row, m)
         if not sub.empty:
-            st.caption("Match score = 40% material + 20% text similarity (TF-IDF) + 25% proximity + 15% quantity cover.")
+            st.caption("The confirm button unlocks only after both the donor and the requester agree on their Hand-offs page. "
+                       "Match score = 40% material + 20% text similarity (TF-IDF) + 25% proximity + 15% quantity cover.")
     with tabs[1]:
         sub = open_l[open_l.route == "Salvage"]
         if sub.empty:
@@ -386,5 +481,6 @@ def method() -> None:
         _card_title("Known limits")
         st.markdown("- Materials are picked by the user. A vision model to recognise them from a photo is not built.\n"
                     "- No real accounts or live backend: state lives in this browser session.\n"
-                    "- The Resident and Township admin roles are a demo switch, not real sign-in.\n"
+                    "- The Resident and Township admin roles are a demo switch, not real sign-in. Residents answer hand-offs by acting as each person in turn.\n"
+                    "- Agreement is two yes/no clicks. A live version would add reminders, time limits and a QR check-in at the guardhouse.\n"
                     "- Used fixtures need condition checks and a no-warranty notice before real use.")

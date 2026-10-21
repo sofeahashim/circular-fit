@@ -196,7 +196,7 @@ class MatchWeights:
 
 
 def match(listings: pd.DataFrame, requests: pd.DataFrame, houses: pd.DataFrame, radius_m: float,
-          w: MatchWeights = MatchWeights()) -> pd.DataFrame:
+          w: MatchWeights = MatchWeights(), blocked: set | None = None) -> pd.DataFrame:
     """Score every open listing/request pair of the same material.
 
     score = 0.40 material match + 0.20 text similarity (TF-IDF) + 0.25 proximity + 0.15 quantity cover.
@@ -213,6 +213,8 @@ def match(listings: pd.DataFrame, requests: pd.DataFrame, houses: pd.DataFrame, 
     for i, l in L.iterrows():
         for j, r in R.iterrows():
             if l.material != r.material or l.house == r.house or l.owner == r.owner:
+                continue
+            if blocked and (l.id, r.id) in blocked:
                 continue
             d = distance_m(houses, l.house, r.house)
             if d > radius_m:

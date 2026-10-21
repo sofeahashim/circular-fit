@@ -16,9 +16,10 @@ Open http://localhost:8501.
 - **Resident / Home:** what to do next, headline numbers and the five-step flow.
 - **Log items:** pick a material, quantity and condition. See the likely route and impact before confirming.
 - **Find materials:** neighbours' items within a walking radius, with a request dialog.
+- **Hand-offs:** when an item is matched, the donor and the requester each agree or decline. A decline sends the item back to routing.
 - **My impact:** green points, reward progress, my items and requests.
 - **Admin / Overview:** tonnes, skip-bin loads and carbon avoided, route split, precinct map, leaderboard, CSV export.
-- **Routing:** each item goes up the waste hierarchy: Reuse > Salvage (staging zone) > Recycle > Landfill. Confirm hand-offs and run weekly collection.
+- **Routing:** each item goes up the waste hierarchy: Reuse > Salvage (staging zone) > Recycle > Landfill. Confirm hand-offs (unlocked only after both residents agree, then a second confirmation pop-up) and run weekly collection.
 - **Planner:** forecasts waste for a handover wave and how much can be diverted.
 - **Settings:** edit every assumption (capacity, thresholds, carbon credits, points).
 - **About:** method, assumptions and limits.
