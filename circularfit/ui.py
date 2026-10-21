@@ -23,7 +23,7 @@ CSS = """
 html,body,.stApp,[data-testid="stAppViewContainer"]{background:var(--bg)!important;color:var(--cream)}
 .stApp, .stApp p, .stApp label, .stApp li, .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp button, .stApp input,
 .stApp textarea, .stApp td, .stApp th, .stApp a, .stApp [data-baseweb]{font-family:'Hanken Grotesk',system-ui,sans-serif!important}
-[data-testid="stMainBlockContainer"]{max-width:1200px;padding:1.2rem 2rem 6rem}
+[data-testid="stMainBlockContainer"]{max-width:1200px;padding:4.6rem 2rem 6rem}
 [data-testid="stHeader"]{background:rgba(14,16,15,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
 [data-testid="stToolbarActions"],[data-testid="stAppDeployButton"],[data-testid="stMainMenu"],[data-testid="stDecoration"],#MainMenu,footer{display:none!important}
 h1,h2,h3{letter-spacing:-.03em;font-weight:700}

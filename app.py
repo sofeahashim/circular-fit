@@ -28,6 +28,10 @@ views.NAV.update(P)
 if not S.get("role_ready"):
     S.role = "Township admin" if st.query_params.get("role") == "admin" else "Resident"
     S.role_ready = True
+if not S.get("as_ready"):
+    S.as_ready = True
+    if st.query_params.get("as"):
+        S.me_name = st.query_params["as"]
 if S.get("role") not in ("Resident", "Township admin"):
     S.role = "Resident"
 pages = ([P["home"], P["log"], P["find"], P["handoffs"], P["impact"], P["method"]] if S.role == "Resident"
