@@ -27,6 +27,8 @@ def init() -> None:
             if i > 1:
                 break
             S.agree[f"{m.listing}|{m.request}"] = {"donor": "agreed", "requester": "agreed" if i == 0 else "pending"}
+    S.setdefault("me_name", "Nadia")
+    S.setdefault("me_house", "Lot 12")
     CFG.update(S.cfg)
 
 

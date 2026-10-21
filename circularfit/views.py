@@ -152,6 +152,7 @@ def _agree(listing_id: str, request_id: str, role: str) -> None:
 
 def _act_as(name: str) -> None:
     S.me_name = name
+    S.me_name_pick = name  # keep the profile menu in step
 
 
 @st.dialog("Decline this hand-off?")

@@ -47,7 +47,8 @@ with who:
     if S.role == "Resident":
         with st.popover(f"👤 {S.me_name} · {S.me_house}", width="stretch"):
             names = sorted(set(S.listings.owner) | set(S.requests.owner) | {"Nadia", S.me_name})
-            st.selectbox("Your name (demo)", names, key="me_name")
+            # the widget has its own key; me_name is plain state, so it survives the popover being hidden in admin view
+            S.me_name = st.selectbox("Your name (demo)", names, index=names.index(S.me_name), key="me_name_pick")
             S.me_house = st.selectbox("Your home", list(S.houses.house), index=list(S.houses.house).index(S.me_house))
             st.caption("Demo only: no login. Everyone and all listings are made up.")
     else:
