@@ -37,6 +37,6 @@ Dark theme inspired by gsap.com (near-black, cream text, green gradient, pill bu
 
 ## Data and assumptions
 - All residents, listings and hand-offs are synthetic (fixed random seed).
-- Tile and sanitaryware emission factors are from the ICE database v4 (cradle-to-gate). Other factors and all kg-per-unit weights are **placeholders to verify** before submission.
+- Emission factors are from the CIDB Malaysia inventory, *Embodied Carbon Inventory Data for Construction Materials* (2021, cradle-to-gate). Where it lists a range the lower value is used. The kg-per-unit weights are **assumptions** (the inventory gives none).
 - Carbon avoided = weight x factor x condition credit x route credit (production stage only). Route credits, staging capacity, recycler minimum and skip-bin size are assumptions.
 - Not built yet: a vision model to recognise materials from photos, real accounts, a live backend.

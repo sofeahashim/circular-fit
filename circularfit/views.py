@@ -86,8 +86,6 @@ def log_items() -> None:
             ui.kpis([("Kept out of the skip bin", est["weight_kg"], "kg", 1, GREEN),
                      ("Carbon avoided if reused", est["carbon_kg"], "kg CO₂e", 1, BLUE),
                      ("Green points you earn", est["points"], "pts", 0, LILAC)])
-            if "PLACEHOLDER" in CATALOGUE.loc[mat, "source"]:
-                ui.note("The carbon factor for this material is a placeholder and still needs a source.")
             if st.button("Log this item", type="primary", width="stretch"):
                 i = S.next_listing
                 S.listings = pd.concat([S.listings, pd.DataFrame([{
@@ -476,8 +474,8 @@ def method() -> None:
         st.dataframe(cat[["Material", "unit", "kg_per_unit", "kgco2e_per_kg", "source"]].rename(columns={
             "unit": "Unit", "kg_per_unit": "kg per unit", "kgco2e_per_kg": "kg CO₂e per kg", "source": "Source"}),
             hide_index=True, width="stretch")
-        ui.note("Rows marked PLACEHOLDER are guesses. Tile and sanitaryware factors come from ICE database v4; "
-                "other databases give higher values, so state which one you use.")
+        ui.note("Emission factors are from the CIDB Malaysia inventory (2021, cradle-to-gate); where it lists a range, the lower value is used. "
+                "The kg per unit is an assumption, because the inventory gives no unit weights.")
     with st.container(border=True):
         _card_title("Known limits")
         st.markdown("- Materials are picked by the user. A vision model to recognise them from a photo is not built.\n"

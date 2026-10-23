@@ -14,17 +14,18 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 # --------------------------------------------------------------------------- catalogue
-# kg_per_unit and kgco2e_per_kg are assumptions. Rows marked "ICE v4" use values found in the
-# ICE database v4 (cradle-to-gate, A1-A3, via Climatiq). Other rows are PLACEHOLDERS to verify.
+# kgco2e_per_kg: embodied carbon factors (cradle-to-gate, A1-A3) from the CIDB Malaysia inventory
+# "Embodied Carbon Inventory Data for Construction Materials" (2021, CREAM). Where CIDB lists a range,
+# the lower value is used so the estimate stays conservative. kg_per_unit is an ASSUMPTION: CIDB gives no unit weights.
 CATALOGUE = pd.DataFrame(
     [
         # key, label, unit, kg/unit, kgCO2e/kg, source, icon
-        ("ceramic_tile", "Ceramic floor tile (box)", "box", 20.0, 0.80, "ICE v4 (factor); box weight assumed", "🟫"),
-        ("porcelain_tile", "Porcelain tile (box)", "box", 22.0, 0.76, "ICE v4 (factor); box weight assumed", "⬜"),
-        ("sanitaryware", "Sink / basin / WC (ceramic)", "piece", 15.0, 1.93, "ICE v4 (factor); weight assumed", "🚽"),
-        ("timber_door", "Timber door", "piece", 25.0, 0.70, "PLACEHOLDER - verify", "🚪"),
-        ("cabinet", "Kitchen cabinet (wood-based)", "piece", 30.0, 0.90, "PLACEHOLDER - verify", "🗄️"),
-        ("faucet", "Tap / faucet (brass)", "piece", 1.2, 3.00, "PLACEHOLDER - verify", "🚰"),
+        ("ceramic_tile", "Ceramic floor tile (box)", "box", 20.0, 0.78, "CIDB 2021, ceramic tile (p.27); box weight assumed", "🟫"),
+        ("porcelain_tile", "Porcelain tile (box)", "box", 22.0, 0.87, "CIDB 2021, glazed porcelain tile (p.27); box weight assumed", "⬜"),
+        ("sanitaryware", "Sink / basin / WC (ceramic)", "piece", 15.0, 1.50, "CIDB 2021, vitreous china sanitaryware (p.23); weight assumed", "🚽"),
+        ("timber_door", "Timber door", "piece", 25.0, 0.31, "CIDB 2021, hardwood timber (p.19); weight assumed", "🚪"),
+        ("cabinet", "Kitchen cabinet (wood-based)", "piece", 30.0, 0.40, "CIDB 2021, chipboard (p.19); weight assumed", "🗄️"),
+        ("faucet", "Tap / faucet (brass)", "piece", 1.2, 2.64, "CIDB 2021, general brass (p.20); weight assumed", "🚰"),
     ],
     columns=["key", "label", "unit", "kg_per_unit", "kgco2e_per_kg", "source", "icon"],
 ).set_index("key")
@@ -43,7 +44,7 @@ STAGING_CAPACITY_KG = 500   # guardhouse staging zone (assumed)
 RECYCLE_MIN_KG = 20         # smallest batch a recycler will collect (assumed)
 SKIP_BIN_KG = 3000          # waste carried by one skip bin ("roro") load (assumed)
 REUSABLE_SHARE = 0.32       # share of housing waste that could be reused or recycled (Malaysian estimate, Ain Shams Eng. J. 2021)
-AVG_FACTOR = 1.0            # average kg CO2e per kg of renovation material (placeholder)
+AVG_FACTOR = round(float((CATALOGUE.kg_per_unit * CATALOGUE.kgco2e_per_kg).sum() / CATALOGUE.kg_per_unit.sum()), 2)  # weight-averaged CIDB factor across the catalogue
 AVG_ROUTE_CREDIT = 0.7      # average route credit across a mix of routes (placeholder)
 
 
