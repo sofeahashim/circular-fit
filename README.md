@@ -1,6 +1,8 @@
 # CircularFit
 
-Hyper-local salvage network for renovation materials (Sime Darby Property University Hackathon 2026, Planet track). Streamlit prototype.
+**CircularFit: Keeping Handover Renovation Waste Out of Skip Bins.** A Streamlit prototype for the Sime Darby Property University Hackathon 2026 (Planet track). It routes renovation waste from newly handed-over homes to a neighbour, a salvage partner or a recycler before landfill, and gives township management a dashboard of the tonnes, skip bins and carbon avoided.
+
+The pitch deck is in [`pitch/`](pitch/CircularFit_Pitch%20Deck.pdf). All data in the app is synthetic.
 
 ## Run
 ```
@@ -10,7 +12,7 @@ python -m streamlit run app.py
 Open http://localhost:8501.
 
 ## Roles (demo switch, no login)
-**Resident** (Home, Log items, Find materials, My impact) and **Township admin** (Overview, Routing, Planner, Settings). Both see About. Switch with the "View as" control at the top. Deep link: `/planner?role=admin`.
+**Resident** (Home, Log items, Find materials, Hand-offs, My impact) and **Township admin** (Overview, Routing, Planner, Settings). Both see About. Switch with the "View as" control at the top. Deep link: `/planner?role=admin`.
 
 ## Pages
 - **Resident / Home:** what to do next, headline numbers and the five-step flow.
